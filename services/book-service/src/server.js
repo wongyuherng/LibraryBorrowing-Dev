@@ -1,6 +1,7 @@
 const express = require('express');
 const mysql = require('mysql2/promise');
 const cors = require('cors');
+const { isValidBookId } = require('./validators');
 
 const app = express();
 
@@ -72,6 +73,13 @@ app.get('/api/books/category/:category', async (req, res) => {
 
 // Get one book by ID
 app.get('/api/books/:id', async (req, res) => {
+  if (!isValidBookId(req.params.id)) {
+    return res.status(400).json({
+      success: false,
+      error: 'Invalid book ID'
+    });
+  }
+
   try {
     const [rows] = await db.query(
       'SELECT * FROM books WHERE id = ?',

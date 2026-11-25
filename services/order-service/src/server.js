@@ -2,6 +2,7 @@ const express = require('express');
 const { MongoClient } = require('mongodb');
 const redis = require('redis');
 const cors = require('cors');
+const { isValidCartItem, isValidUserId } = require('./validators');
 
 const app = express();
 
@@ -80,7 +81,7 @@ app.get('/api/cart/:userId', async (req, res) => {
 app.post('/api/cart/:userId/items', async (req, res) => {
   const { bookCode, title, qty } = req.body;
 
-  if (!bookCode || !title || !Number.isInteger(qty) || qty <= 0) {
+  if (!isValidCartItem(bookCode, title, qty)) {
     return res.status(400).json({
       error: 'bookCode, title and a positive qty are required'
     });
@@ -133,7 +134,7 @@ app.post('/api/cart/:userId/items', async (req, res) => {
 app.post('/api/orders', async (req, res) => {
   const userId = Number(req.body.userId);
 
-  if (!Number.isInteger(userId) || userId <= 0) {
+  if (!isValidUserId(userId)) {
     return res.status(400).json({
       error: 'Valid userId is required'
     });
