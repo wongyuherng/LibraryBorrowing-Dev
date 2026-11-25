@@ -2,6 +2,7 @@ const express = require('express');
 const mysql = require('mysql2/promise');
 const bcrypt = require('bcrypt');
 const cors = require('cors');
+const { validateRegistration, validateLogin } = require('./validators');
 
 const app = express();
 
@@ -34,16 +35,10 @@ app.get('/health', (req, res) => {
 app.post('/api/auth/register', async (req, res) => {
   const { email, password, full_name, phone } = req.body;
 
-  if (!email || !password || !full_name) {
-    return res.status(400).json({
-      error: 'Email, password, and full name are required'
-    });
-  }
+  const validationError = validateRegistration(email, password, full_name);
 
-  if (password.length < 8) {
-    return res.status(400).json({
-      error: 'Password must be at least 8 characters'
-    });
+  if (validationError) {
+    return res.status(400).json({ error: validationError });
   }
 
   try {
@@ -75,10 +70,10 @@ app.post('/api/auth/register', async (req, res) => {
 app.post('/api/auth/login', async (req, res) => {
   const { email, password } = req.body;
 
-  if (!email || !password) {
-    return res.status(400).json({
-      error: 'Email and password are required'
-    });
+  const validationError = validateLogin(email, password);
+
+  if (validationError) {
+    return res.status(400).json({ error: validationError });
   }
 
   try {
