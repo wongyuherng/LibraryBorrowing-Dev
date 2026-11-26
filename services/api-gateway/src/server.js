@@ -42,6 +42,7 @@ app.get('/health', (req, res) => {
     status: 'ok',
     service: 'libraryborrowing-api-gateway',
     port: PORT,
+    version: '1.1',
     routes: {
       auth: 'user-service:3001',
       users: 'user-service:3001',
