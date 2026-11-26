@@ -1,4 +1,6 @@
 const express = require('express');
+const logger = require('./logger');
+const { metricsMiddleware, metricsHandler } = require('./metrics');
 const mysql = require('mysql2/promise');
 const cors = require('cors');
 const { isValidBookId } = require('./validators');
@@ -7,6 +9,18 @@ const app = express();
 
 app.use(cors());
 app.use(express.json());
+app.use(metricsMiddleware);
+
+app.use((req, res, next) => {
+  res.on('finish', () => {
+    logger.info('HTTP request', {
+      method: req.method,
+      path: req.path,
+      statusCode: res.statusCode
+    });
+  });
+  next();
+});
 
 // MySQL connection
 const db = mysql.createPool({
@@ -41,7 +55,7 @@ app.get('/api/books', async (req, res) => {
     });
 
   } catch (err) {
-    console.error('Book fetch error:', err.message);
+    logger.error('Book fetch error:', { error: err.message });
     res.status(500).json({
       success: false,
       error: 'Could not load books'
@@ -63,7 +77,7 @@ app.get('/api/books/category/:category', async (req, res) => {
     });
 
   } catch (err) {
-    console.error('Category error:', err.message);
+    logger.error('Category error:', { error: err.message });
     res.status(500).json({
       success: false,
       error: 'Could not load category'
@@ -99,7 +113,7 @@ app.get('/api/books/:id', async (req, res) => {
     });
 
   } catch (err) {
-    console.error('Book lookup error:', err.message);
+    logger.error('Book lookup error:', { error: err.message });
     res.status(500).json({
       success: false,
       error: 'Could not load book'
@@ -107,8 +121,10 @@ app.get('/api/books/:id', async (req, res) => {
   }
 });
 
+app.get('/metrics', metricsHandler);
+
 const PORT = process.env.PORT || 3002;
 
 app.listen(PORT, () => {
-  console.log(`[book-service] Running on port ${PORT}`);
+  logger.info(`[book-service] Running on port ${PORT}`);
 });

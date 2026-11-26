@@ -1,4 +1,6 @@
 const express = require('express');
+const logger = require('./logger');
+const { metricsMiddleware, metricsHandler } = require('./metrics');
 const { MongoClient } = require('mongodb');
 const redis = require('redis');
 const cors = require('cors');
@@ -8,6 +10,18 @@ const app = express();
 
 app.use(cors());
 app.use(express.json());
+app.use(metricsMiddleware);
+
+app.use((req, res, next) => {
+  res.on('finish', () => {
+    logger.info('HTTP request', {
+      method: req.method,
+      path: req.path,
+      statusCode: res.statusCode
+    });
+  });
+  next();
+});
 
 const CART_TTL = 3600;
 
@@ -29,10 +43,10 @@ let ordersDb;
 mongoClient.connect()
   .then(() => {
     ordersDb = mongoClient.db('libraryborrowing_db');
-    console.log('[order-service] MongoDB connected');
+    logger.info('[order-service] MongoDB connected');
   })
   .catch(err => {
-    console.error('[order-service] MongoDB error:', err.message);
+    logger.error('[order-service] MongoDB error:', { error: err.message });
   });
 
 // Redis connection
@@ -43,15 +57,15 @@ const redisClient = redis.createClient({
 });
 
 redisClient.on('error', err => {
-  console.error('[order-service] Redis error:', err.message);
+  logger.error('[order-service] Redis error:', { error: err.message });
 });
 
 redisClient.connect()
   .then(() => {
-    console.log('[order-service] Redis connected');
+    logger.info('[order-service] Redis connected');
   })
   .catch(err => {
-    console.error('[order-service] Redis connection failed:', err.message);
+    logger.error('[order-service] Redis connection failed:', { error: err.message });
   });
 
 // Redis cart key
@@ -70,7 +84,7 @@ app.get('/api/cart/:userId', async (req, res) => {
     );
 
   } catch (err) {
-    console.error('Cart read error:', err.message);
+    logger.error('Cart read error:', { error: err.message });
     res.status(500).json({
       error: 'Could not read cart'
     });
@@ -123,7 +137,7 @@ app.post('/api/cart/:userId/items', async (req, res) => {
     res.status(201).json(cart);
 
   } catch (err) {
-    console.error('Cart write error:', err.message);
+    logger.error('Cart write error:', { error: err.message });
     res.status(500).json({
       error: 'Could not update cart'
     });
@@ -190,7 +204,7 @@ app.post('/api/orders', async (req, res) => {
     });
 
   } catch (err) {
-    console.error('Order creation error:', err.message);
+    logger.error('Order creation error:', { error: err.message });
     res.status(500).json({
       error: 'Could not submit borrowing request'
     });
@@ -217,15 +231,17 @@ app.get('/api/orders/user/:userId', async (req, res) => {
     res.json(orders);
 
   } catch (err) {
-    console.error('Borrowing history error:', err.message);
+    logger.error('Borrowing history error:', { error: err.message });
     res.status(500).json({
       error: 'Could not load borrowing history'
     });
   }
 });
 
+app.get('/metrics', metricsHandler);
+
 const PORT = process.env.PORT || 3003;
 
 app.listen(PORT, () => {
-  console.log(`[order-service] Running on port ${PORT}`);
+  logger.info(`[order-service] Running on port ${PORT}`);
 });
