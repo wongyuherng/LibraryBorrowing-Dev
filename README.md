@@ -120,3 +120,25 @@ GitHub Actions is also configured to run the service tests automatically when co
 ## 8. Project Repository
 
 GitHub: https://github.com/wongyuherng/LibraryBorrowing-Dev
+
+## Deployment Verification
+
+The Library Borrowing System was deployed using Docker Compose.
+
+The deployment was tested using the following commands:
+
+```bash
+sudo docker compose up -d
+sudo docker compose ps
+```
+
+All seven containers started successfully. MySQL, MongoDB and Redis showed healthy status.
+
+The API Gateway was tested using:
+
+```bash
+curl http://localhost:8000/health
+curl http://localhost:8000/api/books
+```
+
+Both endpoints returned successful responses. The system was also stopped and restarted using Docker Compose. The book records were still available after restarting, confirming that the MySQL data volume was preserved.
