@@ -11,6 +11,7 @@ services:
       DB_USER: library_user
       DB_PASSWORD: ${MYSQL_PASSWORD:?Set MYSQL_PASSWORD in .env}
       DB_NAME: libraryborrowing_db
+      JWT_SECRET: ${JWT_SECRET:?Set JWT_SECRET in .env}
       PORT: 3001
     depends_on:
       db:
@@ -91,6 +92,22 @@ services:
   #   networks:
   #     - libraryborrowing-network
   #   restart: on-failure
+
+
+  prometheus:
+    image: prom/prometheus:latest
+    container_name: libraryborrowing-prometheus
+    ports:
+      - "9090:9090"
+    volumes:
+      - ./prometheus.yml:/etc/prometheus/prometheus.yml:ro
+    depends_on:
+      - user-service
+      - book-service
+      - order-service
+    networks:
+      - libraryborrowing-network
+    restart: unless-stopped
 
   db:
     image: mysql:8.4
